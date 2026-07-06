@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 
-const mongoUrl = process.env.MONGODB_URL || process.env.mongo_url || 'mongodb://localhost:27017/hotel_management';
+const mongoUrl = process.env.MONGO_URI || process.env.MONGODB_URL || process.env.mongo_url || 'mongodb://localhost:27017/hotel_management';
 
 const connectDB = async () => {
   if (mongoose.connection.readyState === 1) {

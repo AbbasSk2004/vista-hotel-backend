@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const serverless = require('serverless-http');
 const { connectDB } = require('./src/config/db');
 
 const authRoutes = require('./src/routes/auth');
@@ -13,7 +12,7 @@ const reportRoutes = require('./src/routes/reports');
 const staffRoutes = require('./src/routes/staff');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 // Initialize CORS securely
 app.use(cors({
@@ -74,11 +73,4 @@ async function startServer() {
   }
 }
 
-if (require.main === module) {
-  startServer();
-}
-
-// Serverless Handler wrapper for Vercel deployment execution
-const handler = serverless(app);
-module.exports = handler;
-module.exports.handler = handler;
+startServer();
