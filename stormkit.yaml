@@ -4,3 +4,8 @@ build:
 
 functions:
   - server.js
+
+routes:
+  - src: "/(.*)"
+    dest: server.js
+    ssr: true
