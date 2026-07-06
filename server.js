@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const serverless = require('serverless-http'); // Swapped from stormkitHandler
+const serverless = require('serverless-http');
 const { connectDB } = require('./src/config/db');
 
 const authRoutes = require('./src/routes/auth');
@@ -14,44 +14,33 @@ const staffRoutes = require('./src/routes/staff');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-let dbConnectionPromise = null;
 
-async function ensureDatabaseConnection() {
-  if (!dbConnectionPromise) {
-    dbConnectionPromise = connectDB().catch((error) => {
-      dbConnectionPromise = null;
-      throw error;
-    });
-  }
-  return dbConnectionPromise;
-}
-
+// Initialize CORS securely
 app.use(cors({
   origin: 'https://vista-hotel.vercel.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-
-// Add this immediately below it to handle browser preflight OPTIONS requests directly:
 app.options('*', cors());
+
 app.use(express.json());
 
+// Immediate Health Check
 app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
+// Database Connection Middleware - Direct and safe invocation
 app.use(async (req, _res, next) => {
-  if (req.path === '/api/health') {
-    return next();
-  }
-
   try {
-    await ensureDatabaseConnection();
+    await connectDB();
     next();
   } catch (error) {
-    next(error);
+    console.error("Database connection failure context:", error);
+    res.status(500).json({ error: 'Database connection failed' });
   }
 });
 
+// App Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/guests', guestRoutes);
@@ -60,6 +49,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/staff', staffRoutes);
 
+// Fallbacks
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
 app.use((err, _req, res, _next) => {
@@ -69,7 +59,7 @@ app.use((err, _req, res, _next) => {
 
 async function startServer() {
   try {
-    await ensureDatabaseConnection();
+    await connectDB();
     app.listen(PORT, () => {
       console.log(`Hotel Management API running on http://localhost:${PORT}`);
     });
@@ -83,8 +73,7 @@ if (require.main === module) {
   startServer();
 }
 
-// Wrapped app handler configured for Vercel Serverless environment
+// Serverless Handler wrapper for Vercel deployment execution
 const handler = serverless(app);
-
 module.exports = handler;
 module.exports.handler = handler;
