@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const stormkitHandler = require('@stormkit/serverless');
 const { connectDB } = require('./src/config/db');
 
 const authRoutes = require('./src/routes/auth');
@@ -13,11 +14,36 @@ const staffRoutes = require('./src/routes/staff');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+let dbConnectionPromise = null;
+
+async function ensureDatabaseConnection() {
+  if (!dbConnectionPromise) {
+    dbConnectionPromise = connectDB().catch((error) => {
+      dbConnectionPromise = null;
+      throw error;
+    });
+  }
+
+  return dbConnectionPromise;
+}
 
 app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
+app.use(async (req, _res, next) => {
+  if (req.path === '/api/health') {
+    return next();
+  }
+
+  try {
+    await ensureDatabaseConnection();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -34,10 +60,9 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Connect to MongoDB and start server
 async function startServer() {
   try {
-    await connectDB();
+    await ensureDatabaseConnection();
     app.listen(PORT, () => {
       console.log(`Hotel Management API running on http://localhost:${PORT}`);
     });
@@ -47,4 +72,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = stormkitHandler(app);
