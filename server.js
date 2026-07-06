@@ -26,7 +26,15 @@ async function ensureDatabaseConnection() {
   return dbConnectionPromise;
 }
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://vista-hotel.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Add this immediately below it to handle browser preflight OPTIONS requests directly:
+app.options('*', cors());
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }));
