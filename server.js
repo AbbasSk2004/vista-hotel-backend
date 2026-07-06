@@ -29,8 +29,13 @@ app.use(express.json());
 // Immediate Health Check
 app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
-// Database Connection Middleware - Direct and safe invocation
-app.use(async (req, _res, next) => {
+// Database Connection Middleware - Safe invocation
+app.use(async (req, res, next) => {
+  // Fast-track preflight requests so they don't depend on DB availability
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   try {
     await connectDB();
     next();
